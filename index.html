@@ -25,6 +25,12 @@
       min-height: 100%;
       box-sizing: border-box;
     }
+
+    @media screen and (max-width: 420px) {
+      body {
+        padding: 10px;
+      }
+    }
     h1 {
       text-align: center;
     }
@@ -38,6 +44,7 @@
     }
     textarea {
       width: 100%;
+      min-height: 42px;
       height: 60px;
       font-size: 16px;
       padding: 10px;
@@ -76,7 +83,7 @@
       justify-content: space-between;
       align-items: center;
     }
-    .output {
+    #output {
       margin-top: 20px;
     }
     table {
@@ -133,7 +140,7 @@
     <p>
       Enter your boolean expression, e.g. 
       <code>(A or not B) && !C</code> or complex variables: 
-      <code>"xor == 2" && "foo(22)"</code>.  
+      <code>"xor == 2" && "foo(22)"</code>.<br>
       You can also use <code>T</code> for <strong>true</strong> and <code>F</code> for <strong>false</strong>.
     </p>
     <textarea id="expressionInput" placeholder="Enter expression..."></textarea>
@@ -189,7 +196,7 @@
       </table>
     </div>
     <div id="errorMsg" class="error"></div>
-    <div class="output">
+    <div id="output" style="display:none;">
       <h2>Simplified Expression</h2>
       <div id="simplifiedOutput" style="display:none;"></div>
       <!-- Copy button for simplified expression (hidden by default) -->
@@ -634,6 +641,7 @@
 
   document.getElementById('processBtn').addEventListener('click', () => {
     const errorMsg = document.getElementById('errorMsg');
+    const output = document.getElementById('output');
     const simplifiedOutput = document.getElementById('simplifiedOutput');
     const truthTableOutput = document.getElementById('truthTableOutput');
     const copySimplifiedBtn = document.getElementById('copySimplifiedBtn');
@@ -644,6 +652,7 @@
     truthTableOutput.innerHTML = '';
     
     // Hide copy buttons until new output is generated.
+    output.style.display = 'none';
     simplifiedOutput.style.display = 'none';
     copySimplifiedBtn.style.display = 'none';
     copyTruthTableBtn.style.display = 'none';
@@ -689,6 +698,7 @@
       if (truthTableOutput.innerHTML.trim() !== '') {
         copyTruthTableBtn.style.display = 'inline-block';
       }
+      output.style.display = 'block';
     } catch (e) {
       errorMsg.textContent = 'Error: ' + e.message;
     }
