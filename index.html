@@ -11,6 +11,7 @@
   <meta property="og:url" content="https://oxr2.jeme.app/">
   <meta property="og:image" content="https://jeme.app.app/oxr2.ico">
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -229,12 +230,14 @@
     }
   }
 
-  // Get the (sorted) list of unique variables from the AST.
+  // Get the list of unique variables from the AST in the order they first appear.
   function getVariables(node) {
-    const vars = new Set();
+    const vars = [];
     function traverse(n) {
       if (n.type === 'Variable') {
-        vars.add(n.name);
+        if (vars.indexOf(n.name) === -1) {
+          vars.push(n.name);
+        }
       } else if (n.type === 'Not') {
         traverse(n.operand);
       } else if (n.type === 'And' || n.type === 'Or') {
@@ -243,7 +246,7 @@
       }
     }
     traverse(node);
-    return Array.from(vars).sort();
+    return vars;
   }
 
   // QUINE–MCCLUSKEY ALGORITHM FOR SIMPLIFICATION
@@ -416,7 +419,7 @@
      ─────────────────────────────── */
 
   function simplifyBooleanExpression(ast) {
-    // Extract variables (sorted alphabetically).
+    // Extract variables in the order they appear in the text.
     const varList = getVariables(ast);
     const numVars = varList.length;
     let truthTable = [];
