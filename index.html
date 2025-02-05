@@ -64,6 +64,12 @@
       text-align: center;
       padding: 8px;
     }
+    td.true-cell {
+      background-color: #d4edda;
+    }
+    td.false-cell {
+      background-color: #f8d7da;
+    }
     th {
       background-color: #0077cc;
       color: white;
@@ -484,9 +490,11 @@
       truthTable.forEach(row => {
         tableHTML += "<tr>";
         varList.forEach(v => {
-          tableHTML += `<td>${row.assignment[v] ? "T" : "F"}</td>`;
+          const cellClass = row.assignment[v] ? "true-cell" : "false-cell";
+          tableHTML += `<td class="${cellClass}">${row.assignment[v] ? "T" : "F"}</td>`;
         });
-        tableHTML += `<td>${row.value ? "T" : "F"}</td></tr>`;
+        const resultClass = row.value ? "true-cell" : "false-cell";
+        tableHTML += `<td class="${resultClass}">${row.value ? "T" : "F"}</td></tr>`;
       });
       tableHTML += "</tbody></table>";
       truthTableOutput.innerHTML = tableHTML;
