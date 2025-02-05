@@ -52,6 +52,25 @@
     button:hover {
       background-color: #005fa3;
     }
+    #toggleHelp {
+      background-color: #ccc;
+      color: #333;
+      border: 1px solid #aaa;
+      padding: 10px 20px;
+      width: 110px;
+      font-size: 14px;
+      border-radius: 4px;
+      margin-top: 10px;
+      cursor: pointer;
+    }
+    #toggleHelp:hover {
+      background-color: #bbb;
+    }
+    .buttons {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
     .output {
       margin-top: 20px;
     }
@@ -105,9 +124,10 @@
     </p>
     <textarea id="expressionInput" placeholder="Enter expression..."></textarea>
     <br>
-    <button id="processBtn">Simplify &amp; Generate Truth Table</button>
-    <!-- Help Toggle Button -->
-    <button id="toggleHelp">Show Help</button>
+    <div class="buttons">
+      <button id="processBtn">Simplify &amp; Generate Truth Table</button>
+      <button id="toggleHelp">Show Help</button>
+    </div>
     <!-- Help Info (hidden by default) -->
     <div id="helpInfo">
       <h2>Help Info</h2>
