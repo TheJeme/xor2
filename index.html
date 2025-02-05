@@ -117,6 +117,14 @@
       border: 1px solid #ddd;
       border-radius: 4px;
     }
+    #simplifiedOutput {
+      background-color: #f9f9f9;
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 4px;
+      font-family: monospace;
+    }
   </style>
 </head>
 <body>
@@ -183,7 +191,7 @@
     <div id="errorMsg" class="error"></div>
     <div class="output">
       <h2>Simplified Expression</h2>
-      <div id="simplifiedOutput"></div>
+      <div id="simplifiedOutput" style="display:none;"></div>
       <!-- Copy button for simplified expression (hidden by default) -->
       <button id="copySimplifiedBtn" style="display:none;">Copy Simplified Expression</button>
       <h2>Truth Table</h2>
@@ -636,6 +644,7 @@
     truthTableOutput.innerHTML = '';
     
     // Hide copy buttons until new output is generated.
+    simplifiedOutput.style.display = 'none';
     copySimplifiedBtn.style.display = 'none';
     copyTruthTableBtn.style.display = 'none';
 
@@ -653,6 +662,7 @@
       // Display simplified expression
       simplifiedOutput.textContent = simplified;
       if (simplified.trim() !== '') {
+        simplifiedOutput.style.display = 'block';
         copySimplifiedBtn.style.display = 'inline-block';
       }
 
