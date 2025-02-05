@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <!-- Responsive viewport -->
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>XOR2 Boolean Algebra Simplifier</title>
   <meta name="description" content="XOR2 simplifies Boolean expressions and generates truth tables. Enter your expression and get a simplified result along with its truth table.">
@@ -74,6 +75,11 @@
       background-color: #0077cc;
       color: white;
     }
+    code {
+      background-color: #ddd;
+      padding: 2px 4px;
+      border-radius: 4px;
+    }
     .error {
       color: red;
       margin-top: 10px;
@@ -83,7 +89,12 @@
 <body>
   <div class="container">
     <h1>XOR2 Boolean Algebra Simplifier</h1>
-    <p>Enter your Boolean expression (e.g. <code>(A or not B) && !C</code>):</p>
+    <p>
+      Enter your Boolean expression (for example: 
+      <code>(A or not B) && !C</code> or with a complex variable: 
+      <code>"a.length > 1" && not "isOrX(2)"</code>
+      ):
+    </p>
     <textarea id="expressionInput" placeholder="Enter expression..."></textarea>
     <br>
     <button id="processBtn">Simplify &amp; Generate Truth Table</button>
@@ -101,18 +112,17 @@
      TOKENIZER & PARSER
      ─────────────────────────────── */
 
-  // Define token specifications.
+  // Token specifications.
+  // Note: The COMPLEX_VARIABLE token now matches text wrapped in double quotes.
   const tokenSpecs = [
+    { type: 'COMPLEX_VARIABLE', regex: /^"([^"]+)"/ },
     { type: 'WS', regex: /^\s+/ },
     { type: 'LPAREN', regex: /^\(/ },
     { type: 'RPAREN', regex: /^\)/ },
-    // Accept multiple synonyms for NOT:
     { type: 'NOT', regex: /^(not\b|NOT\b|!|¬)/ },
-    // Accept multiple synonyms for AND:
     { type: 'AND', regex: /^(and\b|AND\b|&&|∧)/ },
-    // Accept multiple synonyms for OR:
     { type: 'OR', regex: /^(or\b|OR\b|\|\||∨)/ },
-    // Variable: starts with letter or underscore then letters/digits/underscore.
+    // Simple VARIABLE: typical identifier pattern.
     { type: 'VARIABLE', regex: /^[A-Za-z_][A-Za-z0-9_]*/ },
   ];
 
@@ -125,7 +135,10 @@
         const match = input.match(spec.regex);
         if (match) {
           matched = true;
-          if (spec.type !== 'WS') { // Skip whitespace.
+          // For COMPLEX_VARIABLE, store only the inner content (without the quotes)
+          if (spec.type === 'COMPLEX_VARIABLE') {
+            tokens.push({ type: spec.type, value: match[1] });
+          } else if (spec.type !== 'WS') { // Skip whitespace.
             tokens.push({ type: spec.type, value: match[0] });
           }
           input = input.slice(match[0].length);
@@ -149,6 +162,7 @@
     function peek() {
       return tokens[pos];
     }
+    
     function consume(expectedType) {
       const token = tokens[pos];
       if (!token || token.type !== expectedType) {
@@ -163,11 +177,12 @@
     // OrExp -> AndExp ( OR AndExp )*
     // AndExp -> NotExp ( AND NotExp )*
     // NotExp -> (NOT)* Primary
-    // Primary -> VARIABLE | LPAREN Expression RPAREN
+    // Primary -> (VARIABLE | COMPLEX_VARIABLE) | LPAREN Expression RPAREN
 
     function parseExpression() {
       return parseOr();
     }
+
     function parseOr() {
       let node = parseAnd();
       while (peek() && peek().type === 'OR') {
@@ -177,6 +192,7 @@
       }
       return node;
     }
+
     function parseAnd() {
       let node = parseNot();
       while (peek() && peek().type === 'AND') {
@@ -186,6 +202,7 @@
       }
       return node;
     }
+
     function parseNot() {
       if (peek() && peek().type === 'NOT') {
         consume('NOT');
@@ -194,6 +211,7 @@
       }
       return parsePrimary();
     }
+
     function parsePrimary() {
       if (peek() && peek().type === 'LPAREN') {
         consume('LPAREN');
@@ -201,8 +219,9 @@
         consume('RPAREN');
         return node;
       }
-      if (peek() && peek().type === 'VARIABLE') {
-        let token = consume('VARIABLE');
+      // Accept both simple and complex variables.
+      if (peek() && (peek().type === 'VARIABLE' || peek().type === 'COMPLEX_VARIABLE')) {
+        let token = consume(peek().type);
         return { type: 'Variable', name: token.value };
       }
       throw new Error("Unexpected token: " + JSON.stringify(peek()));
@@ -222,7 +241,7 @@
     switch (node.type) {
       case 'Variable':
         if (env[node.name] === undefined) {
-          throw new Error("Variable " + node.name + " is not defined in the environment");
+          throw new Error("Variable " + node.name + " is not defined");
         }
         return env[node.name];
       case 'Not':
@@ -273,7 +292,7 @@
         diffCount++;
         combined += '-';
       } else {
-        return null; // cannot combine if one is a don’t–care and the other is a bit
+        return null;
       }
     }
     return diffCount === 1 ? combined : null;
@@ -286,7 +305,6 @@
     });
     let primeImplicants = [];
     let newTerms = [];
-
     do {
       let groups = {};
       // Group current terms by number of 1’s in their binary representation.
@@ -318,6 +336,7 @@
           });
         });
       }
+      
       // Terms that were not combined are prime implicants.
       terms.forEach(item => {
         if (!item.used && !primeImplicants.some(x => x.term === item.term)) {
@@ -353,6 +372,7 @@
         }
       });
     });
+
     // First, collect all implicants that are the sole cover for a minterm.
     let essentialIndices = new Set();
     for (let m in chart) {
@@ -360,6 +380,7 @@
         essentialIndices.add(chart[m][0]);
       }
     }
+
     // Remove minterms covered by these essential implicants.
     let remainingMinterms = minterms.filter(m => {
       for (let index of essentialIndices) {
@@ -382,6 +403,7 @@
           coverSet.add(nonEssential[j]);
         }
       }
+
       // Check if coverSet covers all remaining minterms.
       let coversAll = remainingMinterms.every(m => {
         for (let idx of coverSet) {
@@ -395,6 +417,7 @@
         }
       }
     }
+
     // Return the implicants in the selected cover.
     let result = [];
     bestCover.forEach(index => {
@@ -402,7 +425,7 @@
     });
     return result;
   }
-
+  
   // Convert a list of implicants into a (sum–of–products) expression string.
   function implicantsToExpression(implicants, varList) {
     const terms = implicants.map(imp => {
@@ -411,21 +434,20 @@
         if (imp.term[i] === '1') {
           parts.push(varList[i]);
         } else if (imp.term[i] === '0') {
-          parts.push("!"+varList[i]);
+          parts.push("!" + varList[i]);
         }
       }
+      
       // If an implicant has no conditions, it means the function is always true.
       return parts.length ? parts.join(" && ") : "true";
     });
     return terms.join(" || ");
   }
 
-  /* ───────────────────────────────
-     MAIN SIMPLIFICATION & TRUTH TABLE GENERATION
-     ─────────────────────────────── */
+  // MAIN SIMPLIFICATION & TRUTH TABLE GENERATION
 
   function simplifyBooleanExpression(ast) {
-    // Extract variables in the order they appear in the text.
+    // Extract variables in the order they appear.
     const varList = getVariables(ast);
     const numVars = varList.length;
     let truthTable = [];
