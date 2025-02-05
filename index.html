@@ -120,7 +120,7 @@
     <p>
       Enter your boolean expression, e.g. 
       <code>(A or not B) && !C</code> or with a complex variables: 
-      <code>"xor == 2" && "isTrue(22)"</code>
+      <code>"xor == 2" && "foo(22)"</code>
     </p>
     <textarea id="expressionInput" placeholder="Enter expression..."></textarea>
     <br>
@@ -205,10 +205,11 @@
         const match = input.match(spec.regex);
         if (match) {
           matched = true;
-          // For COMPLEX_VARIABLE, store only the inner content (without the quotes)
           if (spec.type === 'COMPLEX_VARIABLE') {
+            // For COMPLEX_VARIABLE, store only the inner content (without quotes)
             tokens.push({ type: spec.type, value: match[1] });
-          } else if (spec.type !== 'WS') { // Skip whitespace.
+          } else if (spec.type !== 'WS') { 
+            // Skip whitespace.
             tokens.push({ type: spec.type, value: match[0] });
           }
           input = input.slice(match[0].length);
@@ -232,7 +233,7 @@
     function peek() {
       return tokens[pos];
     }
-    
+
     function consume(expectedType) {
       const token = tokens[pos];
       if (!token || token.type !== expectedType) {
@@ -274,14 +275,14 @@
     }
 
     function parseNot() {
-      if (peek() && peek().type === 'NOT') {
+      while (peek() && peek().type === 'NOT') {
         consume('NOT');
         let operand = parseNot();
         return { type: 'Not', operand: operand };
       }
       return parsePrimary();
     }
-
+    
     function parsePrimary() {
       if (peek() && peek().type === 'LPAREN') {
         consume('LPAREN');
@@ -330,7 +331,7 @@
     const vars = [];
     function traverse(n) {
       if (n.type === 'Variable') {
-        if (vars.indexOf(n.name) === -1) {
+        if (!vars.includes(n.name)) {
           vars.push(n.name);
         }
       } else if (n.type === 'Not') {
@@ -400,7 +401,11 @@
               item2.used = true;
               // Avoid duplicates:
               if (!newTerms.some(x => x.term === combined)) {
-                newTerms.push({ term: combined, minterms: item1.minterms.concat(item2.minterms), used: false });
+                newTerms.push({
+                  term: combined,
+                  minterms: item1.minterms.concat(item2.minterms),
+                  used: false
+                });
               }
             }
           });
@@ -495,23 +500,36 @@
     });
     return result;
   }
-  
-  // Convert a list of implicants into a (sum–of–products) expression string.
+
+  /**
+   * Sort implicants by the index of the earliest variable that appears
+   * (i.e., not '-') to preserve the original order in the final expression.
+   **/
+  function sortImplicantsByVarOrder(implicants, varList) {
+    return implicants.slice().sort((a, b) => {
+      // find the first position where a != '-' for each
+      let firstA = a.term.search(/[01]/);
+      let firstB = b.term.search(/[01]/);
+      return firstA - firstB;
+    });
+  }
+
   function implicantsToExpression(implicants, varList) {
-    const terms = implicants.map(imp => {
+    // Sort implicants by earliest variable index
+    const sortedImplicants = sortImplicantsByVarOrder(implicants, varList);
+    
+    const terms = sortedImplicants.map(imp => {
       let parts = [];
-      for (let i = 0; i < imp.term.length; i++) {
+      for (let i = 0; i < varList.length; i++) {
         if (imp.term[i] === '1') {
           parts.push(varList[i]);
         } else if (imp.term[i] === '0') {
-          parts.push("!" + varList[i]);
+          parts.push('!' + varList[i]);
         }
       }
-      
-      // If an implicant has no conditions, it means the function is always true.
-      return parts.length ? parts.join(" && ") : "true";
+      return parts.length ? parts.join(' && ') : 'true';
     });
-    return terms.join(" || ");
+    return terms.join(' || ');
   }
   
   // MAIN SIMPLIFICATION & TRUTH TABLE GENERATION
@@ -523,7 +541,7 @@
     let truthTable = [];
     let minterms = [];
 
-    // Generate truth table: loop over all 2^n combinations.
+    // Build truth table
     for (let i = 0; i < (1 << numVars); i++) {
       let env = {};
       for (let j = 0; j < numVars; j++) {
@@ -537,15 +555,15 @@
       }
     }
 
-    // Handle constant functions.
+    // Handle constant functions
     if (minterms.length === 0) {
-      return { simplified: "false", truthTable, varList };
+      return { simplified: 'false', truthTable, varList };
     }
     if (minterms.length === (1 << numVars)) {
-      return { simplified: "true", truthTable, varList };
+      return { simplified: 'true', truthTable, varList };
     }
 
-    // Compute prime implicants and select a cover.
+    // Quine–McCluskey
     const primeImplicants = quineMcCluskey(minterms, numVars);
     const selected = findEssentialPrimeImplicants(primeImplicants, minterms, numVars);
     const simplified = implicantsToExpression(selected, varList);
@@ -553,83 +571,79 @@
   }
 
   // UI HANDLERS
-
-  document.getElementById("processBtn").addEventListener("click", () => {
-    const errorMsg = document.getElementById("errorMsg");
-    const simplifiedOutput = document.getElementById("simplifiedOutput");
-    const truthTableOutput = document.getElementById("truthTableOutput");
-    const copySimplifiedBtn = document.getElementById("copySimplifiedBtn");
-    const copyTruthTableBtn = document.getElementById("copyTruthTableBtn");
+  document.getElementById('processBtn').addEventListener('click', () => {
+    const errorMsg = document.getElementById('errorMsg');
+    const simplifiedOutput = document.getElementById('simplifiedOutput');
+    const truthTableOutput = document.getElementById('truthTableOutput');
+    const copySimplifiedBtn = document.getElementById('copySimplifiedBtn');
+    const copyTruthTableBtn = document.getElementById('copyTruthTableBtn');
     
-    errorMsg.textContent = "";
-    simplifiedOutput.textContent = "";
-    truthTableOutput.innerHTML = "";
+    errorMsg.textContent = '';
+    simplifiedOutput.textContent = '';
+    truthTableOutput.innerHTML = '';
     // Hide copy buttons until new output is generated.
-    copySimplifiedBtn.style.display = "none";
-    copyTruthTableBtn.style.display = "none";
+    copySimplifiedBtn.style.display = 'none';
+    copyTruthTableBtn.style.display = 'none';
 
-    const inputStr = document.getElementById("expressionInput").value;
+    const inputStr = document.getElementById('expressionInput').value;
     try {
       const tokens = tokenize(inputStr);
       const ast = parse(tokens);
       const { simplified, truthTable, varList } = simplifyBooleanExpression(ast);
 
-      // Display simplified expression.
+      // Display simplified expression
       simplifiedOutput.textContent = simplified;
-      // Display copy button for simplified expression if available.
-      if (simplified.trim() !== "") {
-        copySimplifiedBtn.style.display = "inline-block";
+      if (simplified.trim() !== '') {
+        copySimplifiedBtn.style.display = 'inline-block';
       }
 
-      // Build HTML table for the truth table.
-      let tableHTML = "<table><thead><tr>";
+      // Build truth table
+      let tableHTML = '<table><thead><tr>';
       varList.forEach(v => {
         tableHTML += `<th>${v}</th>`;
       });
-      tableHTML += "<th>Result</th></tr></thead><tbody>";
+      tableHTML += '<th>Result</th></tr></thead><tbody>';
       truthTable.forEach(row => {
-        tableHTML += "<tr>";
+        tableHTML += '<tr>';
         varList.forEach(v => {
-          const cellClass = row.assignment[v] ? "true-cell" : "false-cell";
-          tableHTML += `<td class="${cellClass}">${row.assignment[v] ? "T" : "F"}</td>`;
+          const cellClass = row.assignment[v] ? 'true-cell' : 'false-cell';
+          tableHTML += `<td class="${cellClass}">${row.assignment[v] ? 'T' : 'F'}</td>`;
         });
-        const resultClass = row.value ? "true-cell" : "false-cell";
-        tableHTML += `<td class="${resultClass}">${row.value ? "T" : "F"}</td></tr>`;
+        const resultClass = row.value ? 'true-cell' : 'false-cell';
+        tableHTML += `<td class="${resultClass}">${row.value ? 'T' : 'F'}</td></tr>`;
       });
-      tableHTML += "</tbody></table>";
+      tableHTML += '</tbody></table>';
       truthTableOutput.innerHTML = tableHTML;
-      // Display copy button for truth table if available.
-      if (truthTableOutput.innerHTML.trim() !== "") {
-        copyTruthTableBtn.style.display = "inline-block";
+      if (truthTableOutput.innerHTML.trim() !== '') {
+        copyTruthTableBtn.style.display = 'inline-block';
       }
     } catch (e) {
-      errorMsg.textContent = "Error: " + e.message;
+      errorMsg.textContent = 'Error: ' + e.message;
     }
   });
 
   // Copy Simplified Expression to Clipboard
-  document.getElementById("copySimplifiedBtn").addEventListener("click", () => {
-    const text = document.getElementById("simplifiedOutput").textContent;
+  document.getElementById('copySimplifiedBtn').addEventListener('click', () => {
+    const text = document.getElementById('simplifiedOutput').textContent;
     navigator.clipboard.writeText(text);
   });
 
   // Copy Truth Table to Clipboard
-  document.getElementById("copyTruthTableBtn").addEventListener("click", () => {
-    // Here we copy the plain text (strip HTML) of the truth table.
-    const truthTableDiv = document.getElementById("truthTableOutput");
+  document.getElementById('copyTruthTableBtn').addEventListener('click', () => {
+    const truthTableDiv = document.getElementById('truthTableOutput');
     const text = truthTableDiv.innerText;
     navigator.clipboard.writeText(text);
   });
 
-  // Help Toggle Functionality
-  document.getElementById("toggleHelp").addEventListener("click", function() {
-    const helpDiv = document.getElementById("helpInfo");
-    if (helpDiv.style.display === "none" || helpDiv.style.display === "") {
-      helpDiv.style.display = "block";
-      this.textContent = "Hide Help";
+  // Help Toggle
+  document.getElementById('toggleHelp').addEventListener('click', function() {
+    const helpDiv = document.getElementById('helpInfo');
+    if (helpDiv.style.display === 'none' || helpDiv.style.display === '') {
+      helpDiv.style.display = 'block';
+      this.textContent = 'Hide Help';
     } else {
-      helpDiv.style.display = "none";
-      this.textContent = "Show Help";
+      helpDiv.style.display = 'none';
+      this.textContent = 'Show Help';
     }
   });
   </script>
