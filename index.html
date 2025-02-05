@@ -198,13 +198,13 @@
     <div id="errorMsg" class="error"></div>
     <div id="output" style="display:none;">
       <h2>Simplified Expression</h2>
-      <div id="simplifiedOutput" style="display:none;"></div>
+      <div id="simplifiedOutput"></div>
       <!-- Copy button for simplified expression (hidden by default) -->
-      <button id="copySimplifiedBtn" style="display:none;">Copy Simplified Expression</button>
+      <button id="copySimplifiedBtn">Copy Simplified Expression</button>
       <h2>Truth Table</h2>
       <div id="truthTableOutput"></div>
       <!-- Copy button for truth table (hidden by default) -->
-      <button id="copyTruthTableBtn" style="display:none;">Copy Truth Table</button>
+      <button id="copyTruthTableBtn">Copy Truth Table</button>
     </div>
   </div>
 
@@ -644,8 +644,6 @@
     const output = document.getElementById('output');
     const simplifiedOutput = document.getElementById('simplifiedOutput');
     const truthTableOutput = document.getElementById('truthTableOutput');
-    const copySimplifiedBtn = document.getElementById('copySimplifiedBtn');
-    const copyTruthTableBtn = document.getElementById('copyTruthTableBtn');
     
     errorMsg.textContent = '';
     simplifiedOutput.textContent = '';
@@ -653,9 +651,6 @@
     
     // Hide copy buttons until new output is generated.
     output.style.display = 'none';
-    simplifiedOutput.style.display = 'none';
-    copySimplifiedBtn.style.display = 'none';
-    copyTruthTableBtn.style.display = 'none';
 
     const inputStr = document.getElementById('expressionInput').value;
     if (inputStr.trim() === '') {
@@ -670,10 +665,6 @@
 
       // Display simplified expression
       simplifiedOutput.textContent = simplified;
-      if (simplified.trim() !== '') {
-        simplifiedOutput.style.display = 'block';
-        copySimplifiedBtn.style.display = 'inline-block';
-      }
 
       // Build truth table
       let tableHTML = '<table><thead><tr>';
@@ -694,10 +685,6 @@
 
       tableHTML += '</tbody></table>';
       truthTableOutput.innerHTML = tableHTML;
-
-      if (truthTableOutput.innerHTML.trim() !== '') {
-        copyTruthTableBtn.style.display = 'inline-block';
-      }
       output.style.display = 'block';
     } catch (e) {
       errorMsg.textContent = 'Error: ' + e.message;
