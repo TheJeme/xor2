@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <!-- Responsive viewport -->
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>XOR2 Boolean Algebra Simplifier</title>
-  <meta name="description" content="XOR2 simplifies Boolean expressions and generates truth tables. Enter your expression and get a simplified result along with its truth table.">
-  <meta property="og:title" content="XOR2 Boolean Algebra Simplifier">
-  <meta property="og:description" content="Enter your Boolean expression and get a simplified expression along with a full truth table.">
+  <title>XOR2 Logic Solver</title>
+  <meta name="description" content="XOR2 simplifies boolean expressions and generates truth tables. Enter your expression and get a simplified result along with its truth table.">
+  <meta property="og:title" content="XOR2 Logic Solver">
+  <meta property="og:description" content="Enter your boolean expression and get a simplified expression along with a full truth table.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://oxr2.jeme.app/">
   <meta property="og:image" content="https://jeme.app.app/oxr2.ico">
@@ -116,16 +116,16 @@
 </head>
 <body>
   <div class="container">
-    <h1>XOR2 Boolean Algebra Simplifier</h1>
+    <h1>XOR2 Logic Solver</h1>
     <p>
-      Enter your Boolean expression, e.g. 
+      Enter your boolean expression, e.g. 
       <code>(A or not B) && !C</code> or with a complex variables: 
-      <code>"xor == 2" && "isIt(22)"</code>
+      <code>"xor == 2" && "isTrue(22)"</code>
     </p>
     <textarea id="expressionInput" placeholder="Enter expression..."></textarea>
     <br>
     <div class="buttons">
-      <button id="processBtn">Simplify &amp; Generate Truth Table</button>
+      <button id="processBtn">Solve</button>
       <button id="toggleHelp">Show Help</button>
     </div>
     <!-- Help Info (hidden by default) -->
