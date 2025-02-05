@@ -149,6 +149,7 @@
       <button id="processBtn">Solve</button>
       <button id="toggleHelp">Show Help</button>
     </div>
+    <div id="errorMsg" class="error"></div>
     <!-- Help Info (hidden by default) -->
     <div id="helpInfo">
       <h2>Help Info</h2>
@@ -195,7 +196,6 @@
         </tbody>
       </table>
     </div>
-    <div id="errorMsg" class="error"></div>
     <div id="output" style="display:none;">
       <h2>Simplified Expression</h2>
       <div id="simplifiedOutput"></div>
@@ -562,7 +562,7 @@
   }
 
   // Sort implicants so final expression doesn't reorder variables 
-  function sortImplicantsByVarOrder(implicants, varList) {
+  function sortImplicantsByVarOrder(implicants) {
     return implicants.slice().sort((a, b) => {
       const firstA = a.term.search(/[01]/);
       const firstB = b.term.search(/[01]/);
@@ -571,7 +571,7 @@
   }
 
   function implicantsToExpression(implicants, varList) {
-    const sorted = sortImplicantsByVarOrder(implicants, varList);
+    const sorted = sortImplicantsByVarOrder(implicants);
     return sorted.map(imp => {
       let parts = [];
       // go through each bit in the implicant
