@@ -108,9 +108,7 @@
   </div>
 
   <script>
-  /* ───────────────────────────────
-     TOKENIZER & PARSER
-     ─────────────────────────────── */
+  // TOKENIZER & PARSER
 
   // Token specifications.
   // Note: The COMPLEX_VARIABLE token now matches text wrapped in double quotes.
@@ -482,9 +480,7 @@
     return { simplified, truthTable, varList };
   }
 
-  /* ───────────────────────────────
-     UI HANDLERS
-     ─────────────────────────────── */
+  // UI HANDLERS
 
   document.getElementById("processBtn").addEventListener("click", () => {
     const errorMsg = document.getElementById("errorMsg");
