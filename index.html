@@ -84,6 +84,7 @@
       color: red;
       margin-top: 10px;
     }
+    /* Help info styling */
     #helpInfo {
       display: none;
       margin-top: 10px;
@@ -105,9 +106,11 @@
     <textarea id="expressionInput" placeholder="Enter expression..."></textarea>
     <br>
     <button id="processBtn">Simplify &amp; Generate Truth Table</button>
+    <!-- Help Toggle Button -->
     <button id="toggleHelp">Show Help</button>
+    <!-- Help Info (hidden by default) -->
     <div id="helpInfo">
-      <h2>Help Information</h2>
+      <h2>Help Info</h2>
       <table>
         <thead>
           <tr>
@@ -133,7 +136,7 @@
             <td>Grouping of expressions</td>
           </tr>
           <tr>
-            <td>Variable</td>
+            <td>Simple Variable</td>
             <td>Identifiers like A, B, myVar</td>
           </tr>
           <tr>
@@ -147,8 +150,12 @@
     <div class="output">
       <h2>Simplified Expression</h2>
       <div id="simplifiedOutput"></div>
+      <!-- Copy button for simplified expression (hidden by default) -->
+      <button id="copySimplifiedBtn" style="display:none;">Copy Simplified Expression</button>
       <h2>Truth Table</h2>
       <div id="truthTableOutput"></div>
+      <!-- Copy button for truth table (hidden by default) -->
+      <button id="copyTruthTableBtn" style="display:none;">Copy Truth Table</button>
     </div>
   </div>
 
@@ -531,9 +538,15 @@
     const errorMsg = document.getElementById("errorMsg");
     const simplifiedOutput = document.getElementById("simplifiedOutput");
     const truthTableOutput = document.getElementById("truthTableOutput");
+    const copySimplifiedBtn = document.getElementById("copySimplifiedBtn");
+    const copyTruthTableBtn = document.getElementById("copyTruthTableBtn");
+    
     errorMsg.textContent = "";
     simplifiedOutput.textContent = "";
     truthTableOutput.innerHTML = "";
+    // Hide copy buttons until new output is generated.
+    copySimplifiedBtn.style.display = "none";
+    copyTruthTableBtn.style.display = "none";
 
     const inputStr = document.getElementById("expressionInput").value;
     try {
@@ -543,6 +556,10 @@
 
       // Display simplified expression.
       simplifiedOutput.textContent = simplified;
+      // Display copy button for simplified expression if available.
+      if (simplified.trim() !== "") {
+        copySimplifiedBtn.style.display = "inline-block";
+      }
 
       // Build HTML table for the truth table.
       let tableHTML = "<table><thead><tr>";
@@ -561,9 +578,27 @@
       });
       tableHTML += "</tbody></table>";
       truthTableOutput.innerHTML = tableHTML;
+      // Display copy button for truth table if available.
+      if (truthTableOutput.innerHTML.trim() !== "") {
+        copyTruthTableBtn.style.display = "inline-block";
+      }
     } catch (e) {
       errorMsg.textContent = "Error: " + e.message;
     }
+  });
+
+  // Copy Simplified Expression to Clipboard
+  document.getElementById("copySimplifiedBtn").addEventListener("click", () => {
+    const text = document.getElementById("simplifiedOutput").textContent;
+    navigator.clipboard.writeText(text);
+  });
+
+  // Copy Truth Table to Clipboard
+  document.getElementById("copyTruthTableBtn").addEventListener("click", () => {
+    // Here we copy the plain text (strip HTML) of the truth table.
+    const truthTableDiv = document.getElementById("truthTableOutput");
+    const text = truthTableDiv.innerText;
+    navigator.clipboard.writeText(text);
   });
 
   // Help Toggle Functionality
