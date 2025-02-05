@@ -2,7 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>ORX2 Boolean Algebra Simplifier</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>XOR2 Boolean Algebra Simplifier</title>
+  <meta name="description" content="XOR2 simplifies Boolean expressions and generates truth tables. Enter your expression and get a simplified result along with its truth table.">
+  <meta property="og:title" content="XOR2 Boolean Algebra Simplifier">
+  <meta property="og:description" content="Enter your Boolean expression and get a simplified expression along with a full truth table.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://oxr2.jeme.app/">
+  <meta property="og:image" content="https://jeme.app.app/oxr2.ico">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -67,9 +75,9 @@
 </head>
 <body>
   <div class="container">
-    <h1>ORX2 Boolean Algebra Simplifier</h1>
+    <h1>XOR2 Boolean Algebra Simplifier</h1>
     <p>Enter your Boolean expression (e.g. <code>(A or not B) && !C</code>):</p>
-    <textarea id="expressionInput" placeholder="Enter expression here..."></textarea>
+    <textarea id="expressionInput" placeholder="Enter expression..."></textarea>
     <br>
     <button id="processBtn">Simplify &amp; Generate Truth Table</button>
     <div id="errorMsg" class="error"></div>
@@ -118,7 +126,10 @@
         }
       }
       if (!matched) {
-        throw new Error("Unexpected token near: " + input);
+        // Instead of showing the entire remaining input, show just the next non-whitespace token.
+        const unexpectedMatch = input.match(/^\S+/);
+        const unexpected = unexpectedMatch ? unexpectedMatch[0] : input;
+        throw new Error("Unexpected token: " + unexpected);
       }
     }
     return tokens;
@@ -197,9 +208,7 @@
     return ast;
   }
 
-  /* ───────────────────────────────
-     AST EVALUATION & VARIABLE EXTRACTION
-     ─────────────────────────────── */
+  // AST EVALUATION & VARIABLE EXTRACTION
 
   // Evaluate the AST given an environment (object mapping variable names to booleans).
   function evalAST(node, env) {
@@ -237,9 +246,7 @@
     return Array.from(vars).sort();
   }
 
-  /* ───────────────────────────────
-     QUINE–MCCLUSKEY ALGORITHM FOR SIMPLIFICATION
-     ─────────────────────────────── */
+  // QUINE–MCCLUSKEY ALGORITHM FOR SIMPLIFICATION
 
   // Helper: pad a number’s binary representation to fixed width.
   function toBinaryString(num, width) {
