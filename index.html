@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ORX2 Boolean Algebra Simplifier</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+    }
+    .container {
+      max-width: 800px;
+      margin: auto;
+      background: #fff;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    textarea {
+      width: 100%;
+      height: 60px;
+      font-size: 16px;
+      padding: 10px;
+      box-sizing: border-box;
+      resize: vertical;
+    }
+    button {
+      background-color: #0077cc;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    button:hover {
+      background-color: #005fa3;
+    }
+    .output {
+      margin-top: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      text-align: center;
+      padding: 8px;
+    }
+    th {
+      background-color: #0077cc;
+      color: white;
+    }
+    .error {
+      color: red;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>ORX2 Boolean Algebra Simplifier</h1>
+    <p>Enter your Boolean expression (e.g. <code>(A or not B) && !C</code>):</p>
+    <textarea id="expressionInput" placeholder="Enter expression here..."></textarea>
+    <br>
+    <button id="processBtn">Simplify &amp; Generate Truth Table</button>
+    <div id="errorMsg" class="error"></div>
+    <div class="output">
+      <h2>Simplified Expression</h2>
+      <div id="simplifiedOutput"></div>
+      <h2>Truth Table</h2>
+      <div id="truthTableOutput"></div>
+    </div>
+  </div>
+
+  <script>
+  /* ───────────────────────────────
+     TOKENIZER & PARSER
+     ─────────────────────────────── */
+
+  // Define token specifications.
+  const tokenSpecs = [
+    { type: 'WS', regex: /^\s+/ },
+    { type: 'LPAREN', regex: /^\(/ },
+    { type: 'RPAREN', regex: /^\)/ },
+    // Accept multiple synonyms for NOT:
+    { type: 'NOT', regex: /^(not\b|NOT\b|!|¬)/ },
+    // Accept multiple synonyms for AND:
+    { type: 'AND', regex: /^(and\b|AND\b|&&|∧)/ },
+    // Accept multiple synonyms for OR:
+    { type: 'OR', regex: /^(or\b|OR\b|\|\||∨)/ },
+    // Variable: starts with letter or underscore then letters/digits/underscore.
+    { type: 'VARIABLE', regex: /^[A-Za-z_][A-Za-z0-9_]*/ },
+  ];
+
+  // Tokenizer: converts input string into an array of tokens.
+  function tokenize(input) {
+    let tokens = [];
+    while (input.length > 0) {
+      let matched = false;
+      for (let spec of tokenSpecs) {
+        const match = input.match(spec.regex);
+        if (match) {
+          matched = true;
+          if (spec.type !== 'WS') { // Skip whitespace.
+            tokens.push({ type: spec.type, value: match[0] });
+          }
+          input = input.slice(match[0].length);
+          break;
+        }
+      }
+      if (!matched) {
+        throw new Error("Unexpected token near: " + input);
+      }
+    }
+    return tokens;
+  }
+
+  // Recursive descent parser.
+  function parse(tokens) {
+    let pos = 0;
+
+    function peek() {
+      return tokens[pos];
+    }
+    function consume(expectedType) {
+      const token = tokens[pos];
+      if (!token || token.type !== expectedType) {
+        throw new Error("Expected token " + expectedType + " but found " + (token ? token.type : "end of input"));
+      }
+      pos++;
+      return token;
+    }
+
+    // Grammar:
+    // Expression -> OrExp
+    // OrExp -> AndExp ( OR AndExp )*
+    // AndExp -> NotExp ( AND NotExp )*
+    // NotExp -> (NOT)* Primary
+    // Primary -> VARIABLE | LPAREN Expression RPAREN
+
+    function parseExpression() {
+      return parseOr();
+    }
+    function parseOr() {
+      let node = parseAnd();
+      while (peek() && peek().type === 'OR') {
+        consume('OR');
+        let right = parseAnd();
+        node = { type: 'Or', left: node, right: right };
+      }
+      return node;
+    }
+    function parseAnd() {
+      let node = parseNot();
+      while (peek() && peek().type === 'AND') {
+        consume('AND');
+        let right = parseNot();
+        node = { type: 'And', left: node, right: right };
+      }
+      return node;
+    }
+    function parseNot() {
+      if (peek() && peek().type === 'NOT') {
+        consume('NOT');
+        let operand = parseNot();
+        return { type: 'Not', operand: operand };
+      }
+      return parsePrimary();
+    }
+    function parsePrimary() {
+      if (peek() && peek().type === 'LPAREN') {
+        consume('LPAREN');
+        let node = parseExpression();
+        consume('RPAREN');
+        return node;
+      }
+      if (peek() && peek().type === 'VARIABLE') {
+        let token = consume('VARIABLE');
+        return { type: 'Variable', name: token.value };
+      }
+      throw new Error("Unexpected token: " + JSON.stringify(peek()));
+    }
+
+    const ast = parseExpression();
+    if (pos < tokens.length) {
+      throw new Error("Extra tokens at end");
+    }
+    return ast;
+  }
+
+  /* ───────────────────────────────
+     AST EVALUATION & VARIABLE EXTRACTION
+     ─────────────────────────────── */
+
+  // Evaluate the AST given an environment (object mapping variable names to booleans).
+  function evalAST(node, env) {
+    switch (node.type) {
+      case 'Variable':
+        if (env[node.name] === undefined) {
+          throw new Error("Variable " + node.name + " is not defined in the environment");
+        }
+        return env[node.name];
+      case 'Not':
+        return !evalAST(node.operand, env);
+      case 'And':
+        return evalAST(node.left, env) && evalAST(node.right, env);
+      case 'Or':
+        return evalAST(node.left, env) || evalAST(node.right, env);
+      default:
+        throw new Error("Unknown node type: " + node.type);
+    }
+  }
+
+  // Get the (sorted) list of unique variables from the AST.
+  function getVariables(node) {
+    const vars = new Set();
+    function traverse(n) {
+      if (n.type === 'Variable') {
+        vars.add(n.name);
+      } else if (n.type === 'Not') {
+        traverse(n.operand);
+      } else if (n.type === 'And' || n.type === 'Or') {
+        traverse(n.left);
+        traverse(n.right);
+      }
+    }
+    traverse(node);
+    return Array.from(vars).sort();
+  }
+
+  /* ───────────────────────────────
+     QUINE–MCCLUSKEY ALGORITHM FOR SIMPLIFICATION
+     ─────────────────────────────── */
+
+  // Helper: pad a number’s binary representation to fixed width.
+  function toBinaryString(num, width) {
+    return num.toString(2).padStart(width, '0');
+  }
+
+  // Try to combine two terms. Each term is a string of characters: '0', '1', or '-' (don’t care).
+  function combineTerms(t1, t2) {
+    let diffCount = 0;
+    let combined = "";
+    for (let i = 0; i < t1.length; i++) {
+      if (t1[i] === t2[i]) {
+        combined += t1[i];
+      } else if (t1[i] !== '-' && t2[i] !== '-') {
+        diffCount++;
+        combined += '-';
+      } else {
+        return null; // cannot combine if one is a don’t–care and the other is a bit
+      }
+    }
+    return diffCount === 1 ? combined : null;
+  }
+
+  // Main Quine–McCluskey routine: returns an array of prime implicants.
+  function quineMcCluskey(minterms, numVars) {
+    let terms = minterms.map(m => {
+      return { term: toBinaryString(m, numVars), minterms: [m], used: false };
+    });
+    let primeImplicants = [];
+    let newTerms = [];
+
+    do {
+      let groups = {};
+      // Group current terms by number of 1’s in their binary representation.
+      terms.forEach(item => {
+        let ones = 0;
+        for (let ch of item.term) {
+          if (ch === '1') ones++;
+        }
+        if (!groups[ones]) groups[ones] = [];
+        groups[ones].push(item);
+      });
+
+      newTerms = [];
+      const groupKeys = Object.keys(groups).map(Number).sort((a, b) => a - b);
+      for (let i = 0; i < groupKeys.length - 1; i++) {
+        const group1 = groups[groupKeys[i]];
+        const group2 = groups[groupKeys[i + 1]];
+        group1.forEach(item1 => {
+          group2.forEach(item2 => {
+            let combined = combineTerms(item1.term, item2.term);
+            if (combined !== null) {
+              item1.used = true;
+              item2.used = true;
+              // Avoid duplicates:
+              if (!newTerms.some(x => x.term === combined)) {
+                newTerms.push({ term: combined, minterms: item1.minterms.concat(item2.minterms), used: false });
+              }
+            }
+          });
+        });
+      }
+      // Terms that were not combined are prime implicants.
+      terms.forEach(item => {
+        if (!item.used && !primeImplicants.some(x => x.term === item.term)) {
+          primeImplicants.push(item);
+        }
+      });
+      terms = newTerms;
+    } while (newTerms.length > 0);
+
+    return primeImplicants;
+  }
+
+  // Check if an implicant term covers a minterm (given as a number).
+  function termCovers(term, m, numVars) {
+    const mBin = toBinaryString(m, numVars);
+    for (let i = 0; i < term.length; i++) {
+      if (term[i] !== '-' && term[i] !== mBin[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // Given the list of prime implicants and the minterms, select a (near) minimal cover.
+  function findEssentialPrimeImplicants(primeImplicants, minterms, numVars) {
+    // Build a chart: for each minterm, list which implicants cover it.
+    let chart = {};
+    minterms.forEach(m => {
+      chart[m] = [];
+      primeImplicants.forEach((imp, index) => {
+        if (termCovers(imp.term, m, numVars)) {
+          chart[m].push(index);
+        }
+      });
+    });
+    // First, collect all implicants that are the sole cover for a minterm.
+    let essentialIndices = new Set();
+    for (let m in chart) {
+      if (chart[m].length === 1) {
+        essentialIndices.add(chart[m][0]);
+      }
+    }
+    // Remove minterms covered by these essential implicants.
+    let remainingMinterms = minterms.filter(m => {
+      for (let index of essentialIndices) {
+        if (termCovers(primeImplicants[index].term, m, numVars)) return false;
+      }
+      return true;
+    });
+
+    // For the remaining minterms, try a brute–force selection among non–essential implicants.
+    let nonEssential = [];
+    primeImplicants.forEach((_, index) => {
+      if (!essentialIndices.has(index)) nonEssential.push(index);
+    });
+    let bestCover = null;
+    const total = nonEssential.length;
+    for (let i = 0; i < (1 << total); i++) {
+      let coverSet = new Set(essentialIndices);
+      for (let j = 0; j < total; j++) {
+        if (i & (1 << j)) {
+          coverSet.add(nonEssential[j]);
+        }
+      }
+      // Check if coverSet covers all remaining minterms.
+      let coversAll = remainingMinterms.every(m => {
+        for (let idx of coverSet) {
+          if (termCovers(primeImplicants[idx].term, m, numVars)) return true;
+        }
+        return false;
+      });
+      if (coversAll) {
+        if (bestCover === null || coverSet.size < bestCover.size) {
+          bestCover = coverSet;
+        }
+      }
+    }
+    // Return the implicants in the selected cover.
+    let result = [];
+    bestCover.forEach(index => {
+      result.push(primeImplicants[index]);
+    });
+    return result;
+  }
+
+  // Convert a list of implicants into a (sum–of–products) expression string.
+  function implicantsToExpression(implicants, varList) {
+    const terms = implicants.map(imp => {
+      let parts = [];
+      for (let i = 0; i < imp.term.length; i++) {
+        if (imp.term[i] === '1') {
+          parts.push(varList[i]);
+        } else if (imp.term[i] === '0') {
+          parts.push("!"+varList[i]);
+        }
+      }
+      // If an implicant has no conditions, it means the function is always true.
+      return parts.length ? parts.join(" && ") : "true";
+    });
+    return terms.join(" || ");
+  }
+
+  /* ───────────────────────────────
+     MAIN SIMPLIFICATION & TRUTH TABLE GENERATION
+     ─────────────────────────────── */
+
+  function simplifyBooleanExpression(ast) {
+    // Extract variables (sorted alphabetically).
+    const varList = getVariables(ast);
+    const numVars = varList.length;
+    let truthTable = [];
+    let minterms = [];
+
+    // Generate truth table: loop over all 2^n combinations.
+    for (let i = 0; i < (1 << numVars); i++) {
+      let env = {};
+      for (let j = 0; j < numVars; j++) {
+        // Use the order of varList. (The leftmost bit corresponds to varList[0].)
+        env[varList[j]] = Boolean(i & (1 << (numVars - j - 1)));
+      }
+      let result = evalAST(ast, env);
+      truthTable.push({ assignment: env, value: result });
+      if (result) {
+        minterms.push(i);
+      }
+    }
+
+    // Handle constant functions.
+    if (minterms.length === 0) {
+      return { simplified: "false", truthTable, varList };
+    }
+    if (minterms.length === (1 << numVars)) {
+      return { simplified: "true", truthTable, varList };
+    }
+
+    // Compute prime implicants and select a cover.
+    const primeImplicants = quineMcCluskey(minterms, numVars);
+    const selected = findEssentialPrimeImplicants(primeImplicants, minterms, numVars);
+    const simplified = implicantsToExpression(selected, varList);
+    return { simplified, truthTable, varList };
+  }
+
+  /* ───────────────────────────────
+     UI HANDLERS
+     ─────────────────────────────── */
+
+  document.getElementById("processBtn").addEventListener("click", () => {
+    const errorMsg = document.getElementById("errorMsg");
+    const simplifiedOutput = document.getElementById("simplifiedOutput");
+    const truthTableOutput = document.getElementById("truthTableOutput");
+    errorMsg.textContent = "";
+    simplifiedOutput.textContent = "";
+    truthTableOutput.innerHTML = "";
+
+    const inputStr = document.getElementById("expressionInput").value;
+    try {
+      const tokens = tokenize(inputStr);
+      const ast = parse(tokens);
+      const { simplified, truthTable, varList } = simplifyBooleanExpression(ast);
+
+      // Display simplified expression.
+      simplifiedOutput.textContent = simplified;
+
+      // Build HTML table for the truth table.
+      let tableHTML = "<table><thead><tr>";
+      varList.forEach(v => {
+        tableHTML += `<th>${v}</th>`;
+      });
+      tableHTML += "<th>Result</th></tr></thead><tbody>";
+      truthTable.forEach(row => {
+        tableHTML += "<tr>";
+        varList.forEach(v => {
+          tableHTML += `<td>${row.assignment[v] ? "T" : "F"}</td>`;
+        });
+        tableHTML += `<td>${row.value ? "T" : "F"}</td></tr>`;
+      });
+      tableHTML += "</tbody></table>";
+      truthTableOutput.innerHTML = tableHTML;
+    } catch (e) {
+      errorMsg.textContent = "Error: " + e.message;
+    }
+  });
+  </script>
+</body>
+</html>
