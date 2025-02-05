@@ -84,20 +84,65 @@
       color: red;
       margin-top: 10px;
     }
+    #helpInfo {
+      display: none;
+      margin-top: 10px;
+      padding: 10px;
+      background: #f0f0f0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>XOR2 Boolean Algebra Simplifier</h1>
     <p>
-      Enter your Boolean expression (for example: 
-      <code>(A or not B) && !C</code> or with a complex variable: 
-      <code>"a.length > 1" && not "isOrX(2)"</code>
-      ):
+      Enter your Boolean expression, e.g. 
+      <code>(A or not B) && !C</code> or with a complex variables: 
+      <code>"xor == 2" && "isIt(22)"</code>
     </p>
     <textarea id="expressionInput" placeholder="Enter expression..."></textarea>
     <br>
     <button id="processBtn">Simplify &amp; Generate Truth Table</button>
+    <button id="toggleHelp">Show Help</button>
+    <div id="helpInfo">
+      <h2>Help Information</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Keyword</th>
+            <th>Meaning</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>and, &&, ∧</td>
+            <td>Logical AND</td>
+          </tr>
+          <tr>
+            <td>or, ||, ∨</td>
+            <td>Logical OR</td>
+          </tr>
+          <tr>
+            <td>not, !, ¬</td>
+            <td>Logical NOT</td>
+          </tr>
+          <tr>
+            <td>( )</td>
+            <td>Grouping of expressions</td>
+          </tr>
+          <tr>
+            <td>Variable</td>
+            <td>Identifiers like A, B, myVar</td>
+          </tr>
+          <tr>
+            <td>"Complex Variable"</td>
+            <td>Any expression with spaces or symbols, e.g. "xor == 2"</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
     <div id="errorMsg" class="error"></div>
     <div class="output">
       <h2>Simplified Expression</h2>
@@ -441,7 +486,7 @@
     });
     return terms.join(" || ");
   }
-
+  
   // MAIN SIMPLIFICATION & TRUTH TABLE GENERATION
 
   function simplifyBooleanExpression(ast) {
@@ -518,6 +563,18 @@
       truthTableOutput.innerHTML = tableHTML;
     } catch (e) {
       errorMsg.textContent = "Error: " + e.message;
+    }
+  });
+
+  // Help Toggle Functionality
+  document.getElementById("toggleHelp").addEventListener("click", function() {
+    const helpDiv = document.getElementById("helpInfo");
+    if (helpDiv.style.display === "none" || helpDiv.style.display === "") {
+      helpDiv.style.display = "block";
+      this.textContent = "Hide Help";
+    } else {
+      helpDiv.style.display = "none";
+      this.textContent = "Show Help";
     }
   });
   </script>
