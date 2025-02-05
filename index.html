@@ -453,7 +453,7 @@
         });
       }
 
-    // Terms that were not combined become prime implicants
+      // Terms that were not combined become prime implicants
       terms.forEach(item => {
         if (!item.used && !primeImplicants.some(x => x.term === item.term)) {
           primeImplicants.push(item);
@@ -495,9 +495,9 @@
 
     let remainingMinterms = minterms.filter(m => {
       for (let index of essentialIndices) {
-      if (termCovers(primeImplicants[index].term, m, numVars)) {
-        return false;
-      }
+        if (termCovers(primeImplicants[index].term, m, numVars)) {
+          return false;
+        }
       }
       return true;
     });
@@ -554,7 +554,7 @@
     const sorted = sortImplicantsByVarOrder(implicants, varList);
     return sorted.map(imp => {
       let parts = [];
-    // go through each bit in the implicant
+      // go through each bit in the implicant
       for (let i = 0; i < varList.length; i++) {
         if (imp.term[i] === '1') {
           parts.push(varList[i]);
@@ -593,18 +593,18 @@
 
     // If entire function is false or true:
     if (minterms.length === 0) {
-    return {
-      simplified: 'F',
-      truthTable,
-      varList
-    };
+      return {
+        simplified: 'F',
+        truthTable,
+        varList
+      };
     }
     if (minterms.length === (1 << numVars)) {
-    return {
-      simplified: 'T',
-      truthTable,
-      varList
-    };
+      return {
+        simplified: 'T',
+        truthTable,
+        varList
+      };
     }
 
     // Quine–McCluskey Minimization
@@ -639,7 +639,7 @@
       errorMsg.textContent = 'Error: Please enter a boolean expression.';
       return;
     }
-    
+
     try {
       const tokens = tokenize(inputStr);
       const ast = parse(tokens);
